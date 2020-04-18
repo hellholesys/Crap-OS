@@ -1,0 +1,342 @@
+--[[
++=Terms of Service=+
+CraftEngine is a email program for ComputerCraft
+I am NOT responsible for how you use this program
+]]
+term.clear()
+modemfound = false
+modemSide = ""
+for i,v in pairs(rs.getSides()) do
+	if peripheral.isPresent(v) then
+		if peripheral.getType(v) == "modem" then
+			if peripheral.call(v, "isWireless") == true then
+				modemSide = v
+				modemfound = true
+			end
+		end
+	end
+end
+if not modemfound then print("No wireless modem found") return end
+if not term.isColor() then 
+	colors.blue = colors.white
+end
+local x, y = term.getSize()
+local modem = peripheral.wrap(modemSide)
+modem.open(os.getComputerID())
+local header = window.create(term.current(), 1, 1, x, 2)
+local body = window.create(term.current(), 1, 3, x, y - 4)
+local footer = window.create(term.current(), 1, y - 1, x, 2)
+
+local menuOne = {
+[1] = "MAIL",
+[2] = "SPAM",
+[3] = "SEND",
+[4] = "EXIT"
+}
+local emails = {}
+local titles = {}
+local spam = {}
+local stitles = {}
+--[[
+{ How it should look }
+From: ID
+Message:
+Hi there bob! how are you?
+]]
+local currMenu = 1 --Current Menu
+local currOpt = 1 --Current Option
+local currMail = 1
+local totalMails = 0 
+local totalSpam = 0
+local haveNewMail = false
+
+function s(obj, ...) return obj.setCursorPos(...) end
+function w(obj, ...) return obj.write(...) end
+function txt(obj, ...) return obj.setTextColor(...) end
+function bg(obj, ...) return obj.setBackgroundColor(...) end
+function divider(obj, cy) 
+	s(obj, 1, cy)
+	w(obj, ("-"):rep(x)) 
+end
+function center(obj, text, cy)
+	s(obj, x/2 - #text/2, cy)
+	w(obj, text)
+end
+function right(obj, text, cy)
+	s(obj, x - #text, cy)
+	w(obj, text)
+end
+function left(obj, text, cy)
+	s(obj, 1, cy)
+	w(obj, text)
+end
+function loadEmails()
+	if not fs.isDir(".EmailCE") then
+		fs.makeDir(".EmailCE")
+	end
+	if not fs.isDir(".SPAMCE") then
+		fs.makeDir(".SPAMCE")
+	end
+	emails = {}
+	titles = {}
+	totalMails = 0
+	for i,v in pairs(fs.list(".EmailCE")) do
+		if v:find(".email") then
+			file = fs.open(".EmailCE/"..v, "r")
+			titles[i] = v:sub(1, #v - 6)
+			emails[i] = file.readAll()
+			totalMails = totalMails + 1
+			file.close()
+		end
+	end
+	spam = {}
+	stitles = {}
+	totalSpam = 0
+	for i,v in pairs(fs.list(".SPAMCE")) do
+		if v:find(".email") then
+			file = fs.open(".SPAMCE/"..v, "r")
+			stitles[i] = v:sub(1, #v - 6)
+			spam[i] = file.readAll()
+			totalSpam = totalSpam + 1
+			file.close()		
+		end
+	end
+	return true
+end
+
+function writeEmail(title, mail, type)
+	if not fs.isDir(".EmailCE") and type == "INBOX" then
+		fs.makeDir(".EmailCE")
+	elseif not fs.isDir(".SPAMCE") and type == "SPAM" then
+		fs.makeDir(".SPAMCE")
+	end
+	if fs.exists(".EmailCE/"..title..".email") and type == "INBOX" then
+		title = title + math.random(1, 1000)
+	elseif fs.exists(".SPAMCE/"..title..".email") and type == "SPAM" then
+		title = title + math.random(1, 1000)
+	end
+	if type == "INBOX" then
+		file = fs.open(".EmailCE/"..title..".email", "w")
+		file.write(mail)
+		file.close()
+	elseif type == "SPAM" then
+		file = fs.open(".SPAMCE/"..title..".email", "w")
+		file.write(mail)
+		file.close()
+	end
+	if loadEmails() then return true else return false end
+end
+
+function drawHeader()
+	header.clear()
+	txt(header, colors.blue)
+	if not pocket then center(header, "CraftEngine", 1) end
+	txt(header, colors.white)
+	divider(header, 2)
+	left(header, os.getComputerID(), 1)
+	if haveNewMail then right(header, "NEW MAIL!", 1) end
+end
+
+function drawMenu(menuval)
+	body.clear()
+	for i,v in pairs(menuval) do
+		center(body, (currOpt == i and "{ " or "")..v..(currOpt == i and " }" or ""), y/2 - 4 + i)
+	end
+end
+
+function drawFooter()
+	footer.clear()
+	right(footer, "{  } |  raft ngine", 2)
+	txt(footer, colors.blue)
+	s(footer, x - 17, 2)
+	w(footer, "CE")
+	s(footer, x - 11, 2)
+	w(footer, "C")
+	s(footer, x - 6, 2)
+	w(footer, "E")
+	txt(footer, colors.white)
+	divider(footer, 1)
+end
+
+function drawInbox(mail)
+	drawFooter()
+	left(footer, mail.."/", 2)
+	txt(footer, colors.blue)
+	w(footer, math.floor(totalMails))
+	txt(footer, colors.white)
+	body.clear()
+	right(body, "<BACK> to exit", 1)
+	right(body, "<DEL> to delete", 2)
+	if totalMails == 0 then return false end
+	term.redirect(body)
+	s(body, 1, 1)
+	print(emails[mail])
+	term.redirect(term.native())
+	if haveNewMail then haveNewMail = false drawHeader() end
+	return true
+end
+
+function drawSpam(mail)
+	drawFooter()
+	left(footer, mail.."/", 2)
+	txt(footer, colors.blue)
+	w(footer, math.floor(totalSpam))
+	txt(footer, colors.white)
+	body.clear()
+	right(body, "<BACK> to exit", 1)
+	right(body, "<DEL> to delete", 2)
+	if totalSpam == 0 then return false end
+	term.redirect(body)
+	s(body, 1, 1)
+	print(spam[mail])
+	term.redirect(term.native())
+	return true
+end
+
+function drawSend()
+	body.clear()
+	--left(body, "TODO: Edit Textbox", 4)
+	left(body, "To: ", 1)
+	destination = read()
+	left(body, "Message: ", 2)
+	s(body, 1, 3)
+	rawmessage = ""
+	message = ""
+	repeat
+		rawmessage = io.read().."\n"
+		cX, cY = body.getCursorPos()
+		s(body, 1, cY + 1)
+		message = message..rawmessage
+	until rawmessage == "\n"
+	if tonumber(destination) == nil then
+		currMenu = 1
+		drawBody()
+	else
+		modem.open(tonumber(destination))
+		modem.transmit(tonumber(destination), os.getComputerID(), message)
+		modem.close(tonumber(destination))
+	end
+end
+
+function drawBody()
+	--[[
+		Options Count:
+		menuOne: 3 Options
+	]]
+	currOpt = 1 --Reset
+	currMail = 1
+	drawMenu(menuOne) --Draw default menu
+	drawFooter()
+	while currMenu == 1 do
+		_, key = os.pullEvent("key")
+		if key == keys.enter then
+			if currOpt == 1 then
+				currMenu = 2
+				drawBody()
+			elseif currOpt == 2 then
+				currMenu = 4
+				drawBody()
+			elseif currOpt == 3 then
+				currMenu = 3
+				drawBody()
+			elseif currOpt == 4 then
+				body.clear()
+				header.clear()
+				footer.clear()
+				term.clear()
+				term.setCursorPos(1,1)
+				modem.close(os.getComputerID())
+				print("Thank you for using CE")
+				error()
+			end
+		end
+		if key == keys.up then
+			if currOpt == 1 then
+				currOpt = 4
+			else
+				currOpt = currOpt - 1
+			end
+		end
+		if key == keys.down then
+			if currOpt == 4 then
+				currOpt = 1
+			else
+				currOpt = currOpt + 1
+			end
+		end
+		drawMenu(menuOne)
+	end
+	while currMenu == 2 do --inbox
+		if not drawInbox(currMail) then currMenu = 1 drawHeader() right(header, "Inbox Empty", 1) drawBody() end
+		_, key = os.pullEvent("key")
+		if key == keys.backspace then
+			currMenu = 1 
+			drawBody()
+		end
+		if key == keys.right then
+			if currMail ~= totalMails then
+				currMail = currMail + 1
+			end
+		end
+		if key == keys.left then
+			if currMail ~= 1 then
+				if totalMails ~= 1 then
+					currMail = currMail - 1
+				end
+			end
+		end
+		if key == keys.delete then
+			fs.delete(".EmailCE/"..titles[currMail]..".email")
+			loadEmails()
+			currMail = 1
+		end
+	end
+	while currMenu == 3 do
+		if not drawSend() then currMenu = 1 drawBody() center(body, "Error", 1) end
+	end
+	while currMenu == 4 do
+		if not drawSpam(currMail) then currMenu = 1 drawHeader() right(header, "Spam Empty", 1) drawBody() end
+		_, key = os.pullEvent("key")
+		if key == keys.backspace then
+			currMenu = 1 
+			drawBody()
+		end
+		if key == keys.right then
+			if currMail ~= totalSpam then
+				currMail = currMail + 1
+			end
+		end
+		if key == keys.left then
+			if currMail ~= 1 then
+				if totalSpam ~= 1 then
+					currMail = currMail - 1
+				end
+			end
+		end
+		if key == keys.delete then
+			fs.delete(".SPAMCE/"..stitles[currMail]..".email")
+			loadEmails()
+			currMail = 1
+		end
+	end
+end
+
+function listen()
+	while true do
+		_, side, to, from, msg, dist = os.pullEvent("modem_message")
+		if to == 65535 then
+			newMail = "From: "..from.."\nMessage:\n"..tostring(msg)
+			writeEmail(tostring(math.random(1,65535)), newMail, "SPAM")
+		elseif to ~= 65535 then
+			newMail = "From: "..from.."\nMessage:\n"..tostring(msg)
+			writeEmail(tostring(math.random(1,65535)), newMail, "INBOX")
+			haveNewMail = true
+		end
+		drawHeader()
+	end
+end
+
+loadEmails()
+drawHeader()
+drawFooter()
+parallel.waitForAny(drawBody, listen)

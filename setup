@@ -1,0 +1,12 @@
+term.clear()
+term.setCursorPos(1,1)
+print("Give your computer a label: ")
+os.setComputerLabel(read())
+
+local loginfo = fs.open("loginfo", "w")
+
+print("Username?")
+loginfo.writeLine(read())
+print("Password?")
+loginfo.writeLine(read("*"))
+shell.run("login")

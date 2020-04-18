@@ -1,0 +1,38 @@
+function CUI(m)
+n=1
+l=#m
+while true do
+term.clear()
+term.setCursorPos(1,2)
+for i=1, l, 1 do
+if i==n then print(i, " ["..m[i].."]") else print(i, " ", m[i]) end
+end
+a, b= os.pullEventRaw()
+if a == "key" then
+if b==200 and n>1 then n=n-1 end
+if b==208 and n<=l then n=n+1 end
+if b==28 then break end
+end
+end
+term.clear() term.setCursorPos(1,1)
+return n
+end
+
+local options={
+"Host",
+"Connect",
+"Back"
+}
+local n=CUI(options)
+
+if n == 1 then
+    shell.run("programs/nsh host login menus/mainmenu")
+return end
+
+if n == 2 then
+    shell.run("nshconn")
+return end
+
+if n == 3 then
+    shell.run("menus/mainmenu")
+return end
