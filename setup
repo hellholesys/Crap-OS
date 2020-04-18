@@ -9,4 +9,10 @@ print("Username?")
 loginfo.writeLine(read())
 print("Password?")
 loginfo.writeLine(read("*"))
+
+loginfo.close()
+
+local stup = fs.open("startup", "w")
+stup.write("shell.run("login")
+
 shell.run("login")
